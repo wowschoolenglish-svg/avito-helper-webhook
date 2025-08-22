@@ -1,26 +1,78 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Цены — DialogAssistant</title>
-<style>body{font-family:Inter,system-ui,Arial;max-width:860px;margin:32px auto;padding:0 16px} h1{margin-bottom:16px}</style>
+<meta name="description" content="Тарифы DialogAssistant для автоответов в чатах Авито: Старт, Бизнес и Агентство." />
+<link rel="icon" href="/favicon.ico" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+.container{max-width:1100px;margin:0 auto;padding:0 16px}
+header{display:flex;justify-content:space-between;align-items:center;padding:16px 0}
+.grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-top:24px}
+.card{border:1px solid #eee;border-radius:14px;padding:20px}
+.price{font-size:32px;font-weight:800;margin:8px 0}
+.btn{display:inline-block;margin-top:12px;padding:12px 18px;border-radius:10px;border:1px solid #111;text-decoration:none}
+footer{margin-top:48px;padding:24px 0;border-top:1px solid #eee;color:#666;font-size:14px}
+</style>
 </head>
 <body>
-<h1>Тарифы на использование DialogAssistant</h1>
-<p>Мы предлагаем простые и прозрачные тарифы для разных объёмов переписки:</p>
+<header class="container">
+<div style="font-weight:800"><a href="/" style="text-decoration:none;color:inherit">DialogAssistant</a></div>
+<nav style="display:flex;gap:16px">
+<a href="/">Главная</a>
+<a href="/faq.html">FAQ</a>
+<a href="/contacts.html">Контакты</a>
+</nav>
+</header>
+<main class="container" style="padding:24px 0">
+<h1>Цены</h1>
+<p>Все тарифы включают мгновенный автоответ, аналитику и поддержку по e‑mail.</p>
+<div class="grid">
+<section class="card">
+<h2>Старт</h2>
+<div class="price">990 ₽/мес</div>
 <ul>
-<li><strong>«Старт»</strong> — 990 ₽/мес. до 50 диалогов.</li>
-<li><strong>«Бизнес»</strong> — 2990 ₽/мес. до 500 диалогов.</li>
-<li><strong>«Агентство»</strong> — индивидуально, от 10 000 ₽/мес. при больших объёмах.</li>
+<li>До 50 диалогов/мес</li>
+<li>Мгновенный автоответ 24/7</li>
+<li>Базовая аналитика</li>
 </ul>
-<p>Все тарифы включают:</p>
+<a class="btn" href="/contacts.html">Подключить</a>
+</section>
+<section class="card">
+<h2>Бизнес</h2>
+<div class="price">2990 ₽/мес</div>
 <ul>
-<li>⚡ Мгновенный автоответ 24/7</li>
-<li>📊 Аналитику чатов</li>
-<li>💬 Поддержку по e-mail</li>
+<li>До 500 диалогов/мес</li>
+<li>Шаблоны и персонализация</li>
+<li>Расширенная аналитика</li>
 </ul>
-<p>Для подключения тарифа напишите на <a href="mailto:wow-school@bk.ru">wow-school@bk.ru</a>.</p>
-<p><a href="/">← Вернуться на главную</a></p>
-</body>
+<a class="btn" href="/contacts.html">Оставить заявку</a>
+</section>
+<section class="card">
+<h2>Агентство</h2>
+<div class="price">от 10 000 ₽/мес</div>
+<ul>
+<li>Индивидуальные лимиты</li>
+<li>Мульти‑аккаунт</li>
+<li>Выделенная поддержка</li>
+</ul>
+<a class="btn" href="/contacts.html">Запросить предложение</a>
+</section>
+</div>
+<p style="margin-top:16px;font-size:14px;color:#666">Цены указаны с НДС/без НДС — согласно статусу ИП. Финальные условия — в публичной оферте.</p>
+</main>
+<footer class="container">
+<div>© <span id="y"></span> ИП Мусенко Сергей Викторович (WOW‑School)</div>
+<div style="margin-top:8px">
+<a href="/privacy.html">Политика конфиденциальности</a> ·
+<a href="/terms.html">Пользовательское соглашение</a> ·
+<a href="/pdn.html">Политика обработки ПДн</a> ·
+<a href="/faq.html">FAQ</a>
+</div>
+<script>document.getElementById('y').textContent = new Date().getFullYear()</script>
 </html>
