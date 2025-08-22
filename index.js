@@ -1,3 +1,61 @@
-export default function handler(req, res) {
-  res.status(200).send("Avito Redirect URL работает!");
-}
+<!doctype html>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DialogAssistant — автоответы в чатах Авито</title>
+<meta name="description" content="Официальная интеграция с Avito Messenger API: мгновенный первый ответ 24/7, шаблоны и аналитика для продавцов и агентств." />
+<link rel="icon" href="/favicon.ico" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial} .container{max-width:1100px;margin:0 auto;padding:0 16px} .hero{padding:72px 0} .btn{padding:12px 18px;border-radius:10px;border:1px solid #111;text-decoration:none} .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))} footer{margin-top:48px;padding:24px 0;border-top:1px solid #eee;color:#666;font-size:14px}</style>
+</head>
+<body>
+<header class="container" style="display:flex;justify-content:space-between;align-items:center;padding:16px 0">
+<div style="font-weight:800">DialogAssistant</div>
+<nav style="display:flex;gap:16px">
+<a href="#features">Возможности</a>
+<a href="#how">Как это работает</a>
+<a href="/contacts.html">Контакты</a>
+<a class="btn" href="#cta">Подключить</a>
+</nav>
+</header>
+<section class="container hero">
+<h1 style="font-size:44px;line-height:1.1;margin:0 0 12px">Автоответы и умная переписка на Авито</h1>
+<p style="font-size:18px;color:#444;max-width:760px">DialogAssistant подключается к вашему аккаунту Авито и отвечает мгновенно — 24/7. Без пропущенных лидов и с понятной аналитикой.</p>
+<div style="display:flex;gap:12px;margin-top:16px">
+<a class="btn" href="#cta">Подключить Авито</a>
+<a class="btn" href="/contacts.html">Оставить заявку</a>
+</div>
+</section>
+<section id="features" class="container" style="padding:24px 0">
+<h2>Возможности</h2>
+<div class="grid">
+<div><h3>Мгновенный ответ 24/7</h3><p>Первое касание — в секунды. Лид не уходит конкурентам.</p></div>
+<div><h3>Персонализация</h3><p>Шаблоны с данными объявления и контекстом вопроса.</p></div>
+<div><h3>Официальный API</h3><p>Работа через Avito Messenger API, без серых схем.</p></div>
+<div><h3>Аналитика</h3><p>Скорость ответа, статусы, конверсия — в одном месте.</p></div>
+</div>
+</section>
+<section id="how" class="container" style="padding:24px 0">
+<h2>Как это работает</h2>
+<ol>
+<li>Подключаете аккаунт и настраиваете шаблоны.</li>
+<li>Мы отвечаем первыми и квалифицируем лид.</li>
+<li>Передаём диалог менеджеру, сохраняем историю.</li>
+</ol>
+</section>
+<section id="cta" class="container" style="padding:24px 0">
+<h2>Готовы подключить?</h2>
+<p>Напишите нам: <a href="mailto:wow-school@bk.ru">wow-school@bk.ru</a> или оставьте заявку на странице Контакты.</p>
+</section>
+<footer class="container">
+<div>© <span id="y"></span> <span>ИП Мусенко Сергей Викторович (бренд WOW School)</span></div>
+<div style="margin-top:8px">
+<a href="/privacy.html">Политика конфиденциальности</a> ·
+<a href="/terms.html">Пользовательское соглашение</a> ·
+<a href="/pdn.html">Политика обработки ПДн</a> ·
+<a href="/contacts.html">Контакты</a>
+</div>
+<script>document.getElementById('y').textContent = new Date().getFullYear()</script>
+</footer>
+</body>
+</html>
