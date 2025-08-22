@@ -1,35 +1,76 @@
 <!doctype html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FAQ — DialogAssistant</title>
-<style>body{font-family:Inter,system-ui,Arial;max-width:860px;margin:32px auto;padding:0 16px} h1{margin-bottom:16px} h2{margin-top:24px}</style>
+<meta name="description" content="Ответы на частые вопросы о DialogAssistant и интеграции с Avito Messenger API." />
+<link rel="icon" href="/favicon.ico" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+.container{max-width:900px;margin:0 auto;padding:0 16px}
+header{display:flex;justify-content:space-between;align-items:center;padding:16px 0}
+details{border:1px solid #eee;border-radius:10px;padding:14px;margin:10px 0}
+summary{font-weight:600;cursor:pointer}
+footer{margin-top:48px;padding:24px 0;border-top:1px solid #eee;color:#666;font-size:14px}
+</style>
 </head>
 <body>
-<h1>Часто задаваемые вопросы (FAQ)</h1>
+<header class="container">
+<div style="font-weight:800"><a href="/" style="text-decoration:none;color:inherit">DialogAssistant</a></div>
+<nav style="display:flex;gap:16px">
+<a href="/">Главная</a>
+<a href="/pricing.html">Цены</a>
+<a href="/contacts.html">Контакты</a>
+</nav>
+</header>
+<main class="container" style="padding:24px 0">
+<h1>Частые вопросы</h1>
 
 
-<h2>Это нарушает правила Авито?</h2>
-<p>Нет, сервис работает через официальный API Авито, соблюдая правила платформы.</p>
+<details open>
+<summary>Это нарушает правила Авито?</summary>
+<p>Нет. Мы работаем через официальный Avito Messenger API и соблюдаем правила платформы.</p>
+</details>
 
 
-<h2>Можно ли отключить автоответ для отдельных объявлений?</h2>
-<p>Да, доступны гибкие фильтры по категориям и тегам.</p>
+<details>
+<summary>Можно ли отключить автоответ для отдельных объявлений?</summary>
+<p>Да. Доступны фильтры по категориям и тегам; можно настраивать шаблоны точечно.</p>
+</details>
 
 
-<h2>Как храните переписку?</h2>
-<p>История чатов хранится до 12 месяцев на серверах в РФ.</p>
+<details>
+<summary>Как храните переписку и где?</summary>
+<p>История переписки и логи хранятся до 12 месяцев на серверах в РФ. Подробности — в Политике конфиденциальности.</p>
+</details>
 
 
-<h2>Что если токен Авито протухнет?</h2>
-<p>Сервис автоматически обновляет токен доступа к API.</p>
+<details>
+<summary>Что будет, если токен доступа Авито протухнет?</summary>
+<p>Сервис автоматически переиздаёт токен и продолжает работу без вашего участия.</p>
+</details>
 
 
-<h2>Можно ли подключить несколько аккаунтов?</h2>
-<p>Да, поддерживается мульти-аккаунт подключение.</p>
+<details>
+<summary>Можно ли подключить несколько аккаунтов Авито?</summary>
+<p>Да, поддерживается мульти‑аккаунт подключение.</p>
+</details>
 
 
-<p><a href="/">← Вернуться на главную</a></p>
+<details>
+<summary>Как связаться с поддержкой?</summary>
+<p>Пишите на <a href="mailto:wow-school@bk.ru">wow-school@bk.ru</a> или оставьте заявку на странице «Контакты».</p>
+</details>
+</main>
+<footer class="container">
+<div>© <span id="y"></span> ИП Мусенко Сергей Викторович (WOW‑School)</div>
+<div style="margin-top:8px">
+<a href="/privacy.html">Политика конфиденциальности</a> ·
+<a href="/terms.html">Пользовательское соглашение</a> ·
+<a href="/pdn.html">Политика обработки ПДн</a> ·
+<a href="/pricing.html">Цены</a>
+</div>
+<script>document.getElementById('y').textContent = new Date().getFullYear()</script>
+</footer>
 </body>
 </html>
