@@ -1,67 +1,61 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+// api/avito/webhook.ts
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createHmac, timingSafeEqual } from 'crypto';
 
-export const config = { runtime: 'nodejs' as const };
-
-function readRaw(req: any): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let s = '';
-    req.setEncoding('utf8');
-    req.on('data', (c: string) => (s += c));
-    req.on('end', () => resolve(s));
+// Читаем "сырое" тело запроса, чтобы HMAC совпал 1:1 с тем, что подписывал Авито
+async function readRawBody(req: VercelRequest): Promise<string> {
+  return await new Promise<string>((resolve, reject) => {
+    let data = '';
+    req.on('data', (chunk) => (data += chunk));
+    req.on('end', () => resolve(data));
     req.on('error', reject);
   });
 }
 
-function eqHex(a: string, b: string) {
-  try { return timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b || '', 'hex')); }
-  catch { return false; }
-}
-
-export default async function handler(req: any, res: any) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    if (req.method !== 'POST') {
-      res.statusCode = 405;
-      res.setHeader('Allow', 'POST');
-      res.end(JSON.stringify({ ok:false, error:'Method Not Allowed' }));
-      return;
-    }
-
     const secret = process.env.WEBHOOK_SECRET || '';
     if (!secret) {
-      console.error('WEBHOOK_SECRET is empty');
-      res.statusCode = 500;
-      res.end(JSON.stringify({ ok:false, error:'Server misconfig' }));
-      return;
+      console.error('WEBHOOK_SECRET is not set');
+      return res.status(500).json({ ok: false, error: 'Misconfigured: no WEBHOOK_SECRET' });
     }
 
-    const raw  = await readRaw(req);
-    const sig  = (req.headers['x-avito-signature'] as string) || '';
+    const raw = await readRawBody(req);
+    const receivedSig = (req.headers['x-avito-signature'] as string) || '';
+
+    if (!receivedSig) {
+      console.warn('Missing X-Avito-Signature header');
+      return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    }
+
     const calc = createHmac('sha256', secret).update(raw, 'utf8').digest('hex');
+    const a = Buffer.from(receivedSig, 'hex');
+    const b = Buffer.from(calc, 'hex');
 
-    if (!eqHex(calc, sig)) {
-      console.warn('Signature mismatch', { got:sig, calc });
-      res.statusCode = 401;
-      res.end(JSON.stringify({ ok:false, error:'Unauthorized' }));
-      return;
+    if (a.length !== b.length || !timingSafeEqual(a, b)) {
+      console.warn('Signature mismatch', { receivedSig, calc, raw });
+      return res.status(401).json({ ok: false, error: 'Unauthorized' });
     }
 
-    let body: any;
-    try { body = JSON.parse(raw); }
-    catch {
-      res.statusCode = 400;
-      res.end(JSON.stringify({ ok:false, error:'Bad JSON' }));
-      return;
+    // Подпись валидна — можно парсить JSON
+    let body: any = {};
+    try { body = raw ? JSON.parse(raw) : {}; } catch { /* игнор */ }
+
+    console.log('AVITO_WEBHOOK | event=', body?.event);
+
+    // Обязательный быстрый 200, иначе Авито будет ретраить:
+    if (body?.event === 'ping') return res.json({ ok: true });
+
+    if (body?.event === 'message') {
+      // Здесь твоя логика (сейчас просто логируем и говорим "ок")
+      // body.payload.chat_id, body.payload.message.text и т.д.
+      return res.json({ ok: true });
     }
 
-    const { event } = body || {};
-    console.log('AVITO_WEBHOOK', { event });
-
-    res.statusCode = 200;
-    res.setHeader('Content-Type','application/json; charset=utf-8');
-    res.end(JSON.stringify({ ok:true }));
-  } catch (e: any) {
-    console.error('HANDLER_CRASH', e?.stack || e?.message || e);
-    res.statusCode = 500;
-    res.end(JSON.stringify({ ok:false, error:'internal' }));
+    // На всякий случай — отвечаем 200 на прочие события
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('Webhook fatal error:', err);
+    return res.status(500).json({ ok: false, error: 'Internal error' });
   }
 }
