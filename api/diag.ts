@@ -1,13 +1,12 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-
 export const config = { runtime: 'nodejs' as const };
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.log('DIAG_HIT', { node: process.version, hasSecret: Boolean(process.env.WEBHOOK_SECRET) });
-  res.status(200).json({
+export default async function handler(req: any, res: any) {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.end(JSON.stringify({
     ok: true,
-    runtime: 'node',
+    kind: 'vercel-function',
     node: process.version,
-    hasSecret: Boolean(process.env.WEBHOOK_SECRET),
-  });
+    hasSecret: !!process.env.WEBHOOK_SECRET,
+  }));
 }
