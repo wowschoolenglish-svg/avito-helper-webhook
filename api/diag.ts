@@ -5,8 +5,9 @@ export default async function handler(req: any, res: any) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.end(JSON.stringify({
     ok: true,
-    kind: 'vercel-function',
+    route: '/api/diag',
     node: process.version,
-    hasSecret: !!process.env.WEBHOOK_SECRET,
+    hasSecret: Boolean(process.env.WEBHOOK_SECRET),
+    method: req.method,
   }));
 }
