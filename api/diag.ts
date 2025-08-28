@@ -1,12 +1,13 @@
-// api/diag.js
-export default async function handler(req, res) {
-  res.statusCode = 200;
+// api/diag.ts
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+export default function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.end(JSON.stringify({
+  res.status(200).json({
     ok: true,
-    ts: new Date().toISOString(),
+    route: '/api/diag',
     method: req.method,
-    url: req.url,
-    env: { WEBHOOK_SECRET: !!process.env.WEBHOOK_SECRET }
-  }));
+    now: new Date().toISOString(),
+    headers: req.headers,
+  });
 }
