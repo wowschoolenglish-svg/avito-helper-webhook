@@ -1,185 +1,116 @@
-// app/api/avito/webhook/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import crypto from "node:crypto";
+// app/api/avito/webhook/route.ts  (Next.js App Router)
+import crypto from "crypto";
 
-export const runtime = "nodejs";
+export const runtime = "edge"; // быстрее и дешевле
+export const preferredRegion = "fra1"; // по желанию
 
-// === Обязательные переменные окружения ===
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "";
-const AVITO_USER_ID = process.env.AVITO_USER_ID || ""; // 407257314
-const AVITO_CLIENT_ID = process.env.AVITO_CLIENT_ID || "";
-const AVITO_CLIENT_SECRET = process.env.AVITO_CLIENT_SECRET || "";
-
-// === OAuth-токены (инициализируем из .env; свежие будем хранить в памяти рантайма) ===
-let ACCESS_TOKEN = process.env.AVITO_AUTH_ACCESS_TOKEN || "";
-let REFRESH_TOKEN = process.env.AVITO_AUTH_REFRESH_TOKEN || "";
-
-/* ====================== УТИЛИТЫ ====================== */
-
-function verifySignature(raw: string, given: string) {
-  if (!WEBHOOK_SECRET) return true; // на случай, если забыли выставить в env
-  const calc = crypto.createHmac("sha256", WEBHOOK_SECRET).update(raw).digest("hex");
-  return calc === (given || "").toLowerCase();
+function signOk() {
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { "content-type": "application/json; charset=utf-8" },
+  });
+}
+function unauthorized(msg: string) {
+  return new Response(JSON.stringify({ ok: false, error: "Unauthorized", msg }), {
+    status: 401,
+    headers: { "content-type": "application/json; charset=utf-8" },
+  });
 }
 
-async function refreshToken(): Promise<string> {
+async function getAccessToken(): Promise<string> {
   const body = new URLSearchParams({
-    grant_type: "refresh_token",
-    refresh_token: REFRESH_TOKEN,
-    client_id: AVITO_CLIENT_ID,
-    client_secret: AVITO_CLIENT_SECRET,
+    grant_type: "client_credentials",
+    client_id: process.env.AVITO_CLIENT_ID!,
+    client_secret: process.env.AVITO_CLIENT_SECRET!,
   });
-
   const r = await fetch("https://api.avito.ru/token", {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body,
+    cache: "no-store",
   });
-  const j = await r.json();
-
-  if (!r.ok) throw new Error(`Refresh failed: ${r.status} ${JSON.stringify(j)}`);
-
-  ACCESS_TOKEN = j.access_token || "";
-  if (j.refresh_token) REFRESH_TOKEN = j.refresh_token;
-
-  return ACCESS_TOKEN;
-}
-
-async function ensureAccessToken() {
-  if (!ACCESS_TOKEN) return await refreshToken();
-  return ACCESS_TOKEN;
-}
-
-function extractIncomingText(payload: any) {
-  const chatId = payload?.chat_id;
-  const msg = payload?.message ?? payload;
-  const direction = msg?.direction ?? payload?.direction;
-  const text =
-    msg?.text ?? msg?.content?.text ?? payload?.text ?? payload?.content?.text;
-
-  return { chatId, text, direction };
-}
-
-async function askOpenAI(prompt: string): Promise<string> {
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) {
-    // Фолбэк, если ключ OpenAI не задан — отвечаем вежливо и коротко
-    return "Спасибо за сообщение! Расскажите, пожалуйста, что именно вас интересует 😊";
+  const j = await r.json<any>();
+  if (!r.ok || !j.access_token) {
+    throw new Error(`token fail ${r.status}: ${JSON.stringify(j)}`);
   }
+  return j.access_token;
+}
 
-  const r = await fetch("https://api.openai.com/v1/chat/completions", {
+async function sendMessage(chatId: string, text: string, token: string) {
+  const url = `https://api.avito.ru/messenger/v1/accounts/${process.env.AVITO_USER_ID}/chats/${chatId}/messages`;
+  const payload = { type: "text", message: { text } };
+  const r = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      "content-type": "application/json; charset=utf-8",
     },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Ты — вежливый ассистент WOW-School. Отвечай кратко (1–2 предложения), по делу.",
-        },
-        { role: "user", content: prompt },
-      ],
-    }),
+    body: JSON.stringify(payload),
   });
-
-  const j = await r.json();
-  if (!r.ok) throw new Error(`OpenAI error: ${r.status} ${JSON.stringify(j)}`);
-
-  return j?.choices?.[0]?.message?.content?.trim() || "Спасибо! ✨";
+  if (!r.ok) {
+    const t = await r.text();
+    throw new Error(`send fail ${r.status}: ${t}`);
+  }
 }
 
-async function sendAvitoMessage(accessToken: string, chatId: string, text: string) {
-  const url = `https://api.avito.ru/messenger/v1/accounts/${AVITO_USER_ID}/chats/${encodeURIComponent(
-    chatId
-  )}/messages`;
-
-  const body = JSON.stringify({ message: { type: "text", text } });
-
-  const doSend = async (token: string) =>
-    fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body,
-    });
-
-  // первая попытка
-  let resp = await doSend(accessToken);
-
-  // если токен протух — обновляем и пробуем ещё раз
-  if (resp.status === 401 || resp.status === 403) {
-    const fresh = await refreshToken();
-    resp = await doSend(fresh);
-  }
-
-  if (!resp.ok) {
-    const t = await resp.text();
-    throw new Error(`send failed: ${resp.status} ${t}`);
-  }
-
-  return resp.json();
+async function buildReplyText(question: string) {
+  // Лёгкий «умный» шаблон без внешних библиотек (чтобы не ждать установку):
+  // при желании подключим OpenAI официально через SDK.
+  // Здесь — простой хардкод-скрипт (быстро и стабильно):
+  const base =
+    "Мы — онлайн-школа WOW School. Форматы: индивидуально 700₽/60 мин, парно 470₽/45 мин, группа 290₽/45 мин. Есть бесплатное пробное занятие. Напишите возраст/уровень и удобное время – подберём преподавателя.";
+  // Можно чуть адаптировать под вопрос:
+  if (/цена|стоим|сколько/i.test(question)) return base;
+  if (/пробн/i.test(question)) return "Да, пробное бесплатное 😊 Когда удобно — днём или вечером? Сколько вам лет и какой уровень примерно?";
+  if (/дет/i.test(question)) return "С детьми от 7 лет работаем регулярно. Есть добрые преподаватели, урок 45 мин. Удобно днём или вечером? Возраст ребёнка?";
+  return base;
 }
 
-/* ====================== ХЕНДЛЕРЫ ====================== */
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
+  // 1) Проверяем подпись (как ты делал в PowerShell)
+  const secret = process.env.WEBHOOK_SECRET || "";
   const raw = await req.text();
   const sig = req.headers.get("x-avito-signature") || "";
-
-  if (!verifySignature(raw, sig)) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  const my = crypto.createHmac("sha256", secret).update(raw).digest("hex");
+  if (!secret || sig.toLowerCase() !== my) {
+    return unauthorized("bad signature");
   }
 
+  // 2) Парсим событие
   let body: any;
   try {
     body = JSON.parse(raw);
   } catch {
-    return NextResponse.json({ ok: false, error: "Bad JSON" }, { status: 400 });
+    return new Response(JSON.stringify({ ok: false, error: "Bad JSON" }), { status: 400 });
   }
 
-  // Пинг от Авито — чтобы проверить доступность урла
-  if (body?.event === "ping") {
-    return NextResponse.json({ ok: true, pong: true });
+  // 3) Разруливаем ping
+  if (body?.event === "ping") return signOk();
+
+  // 4) Автоответ только на входящие тексты
+  if (body?.event === "message") {
+    const chatId = body?.payload?.chat_id;
+    const msg = body?.payload?.message;
+    const isIncoming = msg?.direction === "in";
+    const text = msg?.text || msg?.content?.text || "";
+
+    // safety guard
+    if (chatId && isIncoming && typeof text === "string" && text.trim()) {
+      try {
+        const reply = await buildReplyText(text);
+        const token = await getAccessToken();
+        await sendMessage(chatId, reply, token);
+      } catch (e: any) {
+        // логируем в ответ, чтобы видеть в Vercel Logs
+        return new Response(JSON.stringify({ ok: false, error: String(e) }), {
+          status: 200,
+          headers: { "content-type": "application/json; charset=utf-8" },
+        });
+      }
+    }
+    return signOk();
   }
 
-  if (body?.event !== "message") {
-    // другие типы событий тут игнорируем
-    return NextResponse.json({ ok: true, skip: "not a message" });
-  }
-
-  const { chatId, text, direction } = extractIncomingText(body?.payload);
-  if (!chatId) {
-    return NextResponse.json({ ok: false, error: "no chat_id" }, { status: 400 });
-  }
-  if (direction && direction !== "in") {
-    // Отвечаем только на входящие
-    return NextResponse.json({ ok: true, skip: "outgoing" });
-  }
-  if (!text) {
-    return NextResponse.json({ ok: true, skip: "no-text" });
-  }
-
-  try {
-    const reply = await askOpenAI(text);
-    const token = await ensureAccessToken();
-    await sendAvitoMessage(token, chatId, reply);
-    return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    console.error("AVITO_WEBHOOK_ERROR:", e?.message || e);
-    return NextResponse.json(
-      { ok: false, error: String(e?.message || e) },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET() {
-  // Авито может иногда "пробрасывать" GET — всегда отвечаем 405
-  return NextResponse.json({ ok: false, error: "Method Not Allowed" }, { status: 405 });
+  // По умолчанию — ок
+  return signOk();
 }
