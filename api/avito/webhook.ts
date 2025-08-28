@@ -1,74 +1,67 @@
-// pages/api/avito/webhook.ts
-import type { NextApiRequest, NextApiResponse } from 'next';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
-// ВАЖНО: нужен сырой body, иначе подпись будет неверна
-// + Явно просим Node-runtime, чтобы гарантированно работал node:crypto
-export const config = {
-  api: { bodyParser: false },
-  runtime: 'nodejs' as const,
-};
+export const config = { runtime: 'nodejs' as const };
 
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || ''; // 5YwV9nqT8s2Kj0mZrX3cLpQh7dUaEf4B
-
-function safeEqualHex(a: string, b: string) {
-  try {
-    return timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b || '', 'hex'));
-  } catch {
-    return false;
-  }
-}
-
-async function readRawBody(req: NextApiRequest): Promise<string> {
-  return await new Promise<string>((resolve, reject) => {
-    let data = '';
+function readRaw(req: any): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let s = '';
     req.setEncoding('utf8');
-    req.on('data', (chunk) => (data += chunk));
-    req.on('end', () => resolve(data));
+    req.on('data', (c: string) => (s += c));
+    req.on('end', () => resolve(s));
     req.on('error', reject);
   });
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+function eqHex(a: string, b: string) {
+  try { return timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b || '', 'hex')); }
+  catch { return false; }
+}
+
+export default async function handler(req: any, res: any) {
   try {
     if (req.method !== 'POST') {
+      res.statusCode = 405;
       res.setHeader('Allow', 'POST');
-      return res.status(405).json({ ok: false, error: 'Method Not Allowed' });
+      res.end(JSON.stringify({ ok:false, error:'Method Not Allowed' }));
+      return;
     }
 
-    if (!WEBHOOK_SECRET) {
-      console.error('WEBHOOK_SECRET is empty. Check Vercel env.');
-      return res.status(500).json({ ok: false, error: 'Server misconfig' });
+    const secret = process.env.WEBHOOK_SECRET || '';
+    if (!secret) {
+      console.error('WEBHOOK_SECRET is empty');
+      res.statusCode = 500;
+      res.end(JSON.stringify({ ok:false, error:'Server misconfig' }));
+      return;
     }
 
-    const raw = await readRawBody(req);
-    const sig = (req.headers['x-avito-signature'] as string) || '';
+    const raw  = await readRaw(req);
+    const sig  = (req.headers['x-avito-signature'] as string) || '';
+    const calc = createHmac('sha256', secret).update(raw, 'utf8').digest('hex');
 
-    // HMAC-SHA256(raw, secret) -> hex
-    const calc = createHmac('sha256', WEBHOOK_SECRET).update(raw, 'utf8').digest('hex');
-
-    if (!safeEqualHex(calc, sig)) {
-      console.warn('Signature mismatch', { got: sig, calc });
-      return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    if (!eqHex(calc, sig)) {
+      console.warn('Signature mismatch', { got:sig, calc });
+      res.statusCode = 401;
+      res.end(JSON.stringify({ ok:false, error:'Unauthorized' }));
+      return;
     }
 
     let body: any;
-    try {
-      body = JSON.parse(raw);
-    } catch (e) {
-      console.error('Bad JSON:', raw);
-      return res.status(400).json({ ok: false, error: 'Bad JSON' });
+    try { body = JSON.parse(raw); }
+    catch {
+      res.statusCode = 400;
+      res.end(JSON.stringify({ ok:false, error:'Bad JSON' }));
+      return;
     }
 
-    const { event, payload } = body || {};
-    console.log('AVITO_WEBHOOK', { node: process.version, event, preview: JSON.stringify(payload)?.slice(0, 300) });
+    const { event } = body || {};
+    console.log('AVITO_WEBHOOK', { event });
 
-    // TODO: здесь любая бизнес-логика
-
-    return res.status(200).json({ ok: true });
+    res.statusCode = 200;
+    res.setHeader('Content-Type','application/json; charset=utf-8');
+    res.end(JSON.stringify({ ok:true }));
   } catch (e: any) {
-    // Ключевое: чтобы в Vercel Logs был стек, иначе виден только FUNCTION_INVOCATION_FAILED
     console.error('HANDLER_CRASH', e?.stack || e?.message || e);
-    return res.status(500).json({ ok: false, error: 'internal' });
+    res.statusCode = 500;
+    res.end(JSON.stringify({ ok:false, error:'internal' }));
   }
 }
